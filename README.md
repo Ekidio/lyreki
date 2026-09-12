@@ -19,7 +19,7 @@ For real-time audio playback and sample triggering.
 Base64 Data URLs:
 For embedding WAV audio assets directly into the code.
 
-Installation & UsagePrerequisites: __Open LYREKI.html directly in your browser__
+Installation & UsagePrerequisites: __Open EKIDIO_LYREKI_V2.html directly in your browser__
 Any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari). 
 
 LicenseCreated by EKIDIO. __Free to use and modify__ for personal or educational purposes. 
