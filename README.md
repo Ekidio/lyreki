@@ -1,4 +1,4 @@
-LYREKI is a browser-based, client-side audio and music utility application built as a Single-File Web App. 
+__LYREKI__ is a browser-based, client-side audio and music utility application built as a Single-File Web App. 
 Designed with a clean interface, it enables direct audio sample playback, lyric management, and sound track processing inside your browser without sending data to external servers.
 
 Single-File Architecture:
@@ -19,7 +19,7 @@ For real-time audio playback and sample triggering.
 Base64 Data URLs:
 For embedding WAV audio assets directly into the code.
 
-Installation & UsagePrerequisites:
-Any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari). Open LYREKI.html directly in your browser.  
+Installation & UsagePrerequisites: __Open LYREKI.html directly in your browser__
+Any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari). 
 
-LicenseCreated by EKIDIO. Free to use and modify for personal or educational purposes. 
+LicenseCreated by EKIDIO. __Free to use and modify__ for personal or educational purposes. 
