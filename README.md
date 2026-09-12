@@ -24,5 +24,6 @@ Any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari).
 
 LicenseCreated by EKIDIO. __Free to use and modify__ for personal or educational purposes. 
 
-<img width="2880" height="1620" alt="Screenshot 2026-09-12 at 12 05 47" src="https://github.com/user-attachments/assets/6f979fdd-9347-4ed1-ba78-86e278fac201" />
+<img width="2880" height="1452" alt="Screenshot 2026-09-12 at 12 05 47" src="https://github.com/user-attachments/assets/108bae69-7726-4287-9674-9fa7b7beceeb" />
+
 
