@@ -1,3 +1,6 @@
+2026.09.17. - V3.0
+Delete all lyrics function is released. 
+
 __LYREKI__ is a browser-based, client-side audio and music utility application built as a Single-File Web App. 
 Designed with a clean interface, it enables direct audio sample playback, lyric management, and sound track processing inside your browser without sending data to external servers.
 
