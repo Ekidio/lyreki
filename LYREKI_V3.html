@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LYREKI 3.0</title>
+<style>
+  * { box-sizing: border-box; touch-action: manipulation; }
+  body {
+    margin: 0; padding: 12px; color: #eef0f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    user-select: none; -webkit-user-select: none;
+    background:
+      radial-gradient(circle at 8% 8%, rgba(255,138,61,0.30), transparent 40%),
+      radial-gradient(circle at 92% 12%, rgba(80,140,255,0.32), transparent 45%),
+      radial-gradient(circle at 15% 90%, rgba(60,220,180,0.24), transparent 45%),
+      radial-gradient(circle at 90% 88%, rgba(190,80,255,0.28), transparent 45%),
+      linear-gradient(135deg, #1a1a22 0%, #22232e 50%, #191a20 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  .app-shell { display: flex; flex-direction: column; gap: 12px; }
+
+  .top-bar-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; gap: 8px; flex-wrap: wrap;
+  }
+  h1 { font-size: 1.3rem; margin: 0; color: #fff; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .app-subtitle {
+    font-size: 0.62rem; font-weight: 600; color: #b9c3d6;
+    text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85;
+  }
+  .top-bar-right { display: flex; align-items: center; gap: 8px; }
+  .device-badge {
+    font-size: 0.75rem; background: rgba(80,140,255,0.16); border: 1px solid rgba(80,140,255,0.55);
+    color: #9cbcff; padding: 3px 8px; border-radius: 12px; font-weight: 600;
+    backdrop-filter: blur(6px);
+  }
+  .lang-switch {
+    display: flex; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; overflow: hidden;
+    background: rgba(255,255,255,0.06); backdrop-filter: blur(6px);
+  }
+  .lang-btn {
+    background: transparent; color: #aab2c4; border: none; padding: 5px 11px;
+    font-size: 0.75rem; font-weight: 700; cursor: pointer; flex: none; border-radius: 0;
+  }
+  .lang-btn.active { background: linear-gradient(180deg, #8da18e, #4fd435); color: #fff; }
+  .lang-btn:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+  /* --- GLASS PANEL: frosted glass over the colorful background --- */
+  .panel {
+    background: linear-gradient(155deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.05));
+    border-radius: 12px; padding: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.14);
+  }
+
+  .file-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* --- BRUSHED ALUMINUM BUTTONS --- */
+  button, .btn-label {
+    background: linear-gradient(180deg, #6a6b76 0%, #45454e 48%, #38383f 52%, #4d4d56 100%);
+    color: #fff; border: 1px solid rgba(255,255,255,0.18); padding: 10px 12px;
+    border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+    flex: 1 1 calc(50% - 6px); text-align: center; transition: background 0.15s ease, filter 0.15s ease;
+    box-sizing: border-box;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 2px rgba(0,0,0,0.35), 0 2px 5px rgba(0,0,0,0.3);
+    text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+  }
+  button:hover, .btn-label:hover { filter: brightness(1.12); }
+  button:active, .btn-label:active { filter: brightness(0.92); }
+  button:disabled, .btn-label.disabled { opacity: 0.4; pointer-events: none; }
+  .btn-label.primary, button.primary {
+    background: linear-gradient(180deg, #7fb0ff 0%, #4a7ce0 48%, #3568d4 52%, #5c8dee 100%);
+  }
+  button.success {
+    background: linear-gradient(180deg, #7fe6a0 0%, #46c86e 48%, #35b25c 52%, #57d87f 100%);
+    color: #06280f; text-shadow: none;
+  }
+  button.danger {
+    background: linear-gradient(180deg, #ff9a9a 0%, #eb5050 48%, #d43c3c 52%, #f86060 100%);
+  }
+
+  .file-info { font-size: 0.75rem; color: #c3c9d6; margin-top: 8px; text-align: center; }
+
+  #wfContainer {
+    position: relative; width: 100%; border-radius: 8px; overflow: hidden;
+    background: rgba(6,6,10,0.55); border: 1px solid rgba(255,255,255,0.1);
+  }
+  canvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+  #wfEmpty {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #8891a0; font-size: 0.9rem; pointer-events: none;
+  }
+
+  .controls-bar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
+  .time-display { font-family: monospace; font-size: 0.95rem; color: #ffd23f; font-weight: bold; }
+
+  #hscroll { width: 100%; margin-top: 6px; accent-color: #508cff; }
+  .zoom-btns { display: flex; gap: 4px; }
+  .zoom-btns button { flex: none; padding: 6px 10px; }
+
+  /* BOTTOM ROW: karaoke box and lyric box are always stacked, each full-width and centered —
+     same on desktop as on mobile, no side-by-side columns. */
+  .bottom-row { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+  .karaoke-col, .text-col { width: 100%; }
+
+  /* FIXED-SIZE karaoke display: height is a hard constant (not min-height), so it never
+     grows/shrinks based on the currently shown lyric text. The text is scaled to fit
+     inside instead (see fitKaraokeText in the script). */
+  .karaoke-preview {
+    background: linear-gradient(155deg, rgba(255,255,255,0.08), rgba(6,6,10,0.55) 60%);
+    border-radius: 12px; padding: 14px 16px; text-align: center;
+    height: 150px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.14);
+    width: 100%; overflow: hidden;
+  }
+  .kar-cur {
+    font-weight: 800; color: #ffd23f; line-height: 1.15; white-space: nowrap;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  }
+  .kar-next {
+    color: #aab2c4; margin-top: 8px; line-height: 1.2; white-space: nowrap;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .edit-box { display: flex; gap: 6px; margin-bottom: 8px; }
+  .edit-box input[type="text"] {
+    flex: 1; background: rgba(6,6,10,0.5); border: 1px solid rgba(255,255,255,0.18); color: #fff;
+    padding: 10px; border-radius: 6px; font-size: 0.95rem; outline: none;
+  }
+  .edit-box input[type="text"]:focus { border-color: #508cff; }
+
+  ul.line-list {
+    list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto;
+    background: rgba(6,6,10,0.45); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  }
+  @media (orientation: landscape) {
+    ul.line-list { max-height: 440px; }
+  }
+  ul.line-list li {
+    padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+  }
+  ul.line-list li:hover { background: rgba(255,255,255,0.06); }
+  ul.line-list li.selected { background: rgba(80,140,255,0.18); border-left: 4px solid #508cff; }
+  ul.line-list li.playing { background: rgba(255,178,50,0.14); }
+  ul.line-list li .ts { font-family: monospace; color: #ffd23f; font-size: 0.8rem; }
+  ul.line-list li .txt { flex: 1; word-break: break-word; }
+  ul.line-list li .empty-txt { color: #767e8c; font-style: italic; }
+
+  .tools-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .tools-grid button { padding: 8px 4px; font-size: 0.75rem; flex: none; }
+
+  .hotkey-hints {
+    font-size: 0.7rem; color: #a3aab8; margin-top: 8px; text-align: center;
+    display: none;
+  }
+  @media (min-width: 850px) { .hotkey-hints { display: block; } }
+
+  .hidden-input { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- 1) TOP BAR: title, language switch, device badge, file operations -->
+  <div class="top-bar panel">
+    <div class="top-bar-row">
+      <h1>LYREKI 3.0 <span class="app-subtitle">Visual Lyrics Editor</span></h1>
+      <div class="top-bar-right">
+        <div class="lang-switch">
+          <button id="btnLangHu" class="lang-btn active" type="button">HU</button>
+          <button id="btnLangEn" class="lang-btn" type="button">EN</button>
+        </div>
+        <span id="deviceMode" class="device-badge">Desktop Nézet</span>
+      </div>
+    </div>
+    <div class="file-buttons">
+      <label for="mp3Input" id="lblOpenMp3" class="btn-label primary">🎵 Audio megnyitása</label>
+      <label for="txtInput" id="lblOpenSubtitle" class="btn-label">📄 Felirat (.lrc/.txt)</label>
+      <button id="btnImportEmbedded" disabled>💾 Beágyazott dalszöveg</button>
+      <label for="projInput" id="lblOpenProject" class="btn-label">📂 Projekt (.lyreki)</label>
+    </div>
+    <div class="file-info">
+      <span id="mp3Label">Nincs MP3</span> | <span id="txtLabel">Nincs szöveg</span>
+    </div>
+    <div class="file-info" id="embedInfo" style="color:#888;"></div>
+    <input type="file" id="mp3Input" class="hidden-input" accept="audio/*,.mp3,.wav,.aif,.aiff,.m4a,.flac,.ogg,.oga">
+    <input type="file" id="txtInput" class="hidden-input" accept=".lrc,.txt,.rtf,.csv">
+    <input type="file" id="projInput" class="hidden-input" accept=".lyreki,.json">
+  </div>
+
+  <!-- 2) WAVEFORM: full width -->
+  <div class="panel">
+    <div id="wfContainer">
+      <canvas id="wfCanvas"></canvas>
+      <div id="wfEmpty">Tölts be egy hangfájlt</div>
+    </div>
+    <input type="range" id="hscroll" min="0" max="100" value="0" style="display:none;">
+
+    <div class="controls-bar">
+      <span class="time-display"><span id="curTime">00:00.00</span> / <span id="totTime">00:00.00</span></span>
+      <div class="zoom-btns">
+        <button id="btnZoomOut" title="Kicsinyítés">➖</button>
+        <span id="zoomLbl" style="font-size:0.8rem; align-self:center;">1.0×</span>
+        <button id="btnZoomIn" title="Nagyítás">➕</button>
+        <button id="btnZoomReset" title="Visszaállítás">🎯</button>
+      </div>
+    </div>
+
+    <div class="controls-bar" style="margin-top: 10px;">
+      <button id="btnPlay" class="primary" style="flex:2; font-size:1rem; padding:12px;">▶ Lejátszás</button>
+      <button id="btnStop" style="flex:1;">⏹ Stop</button>
+      <button id="btnMark" class="success" style="flex:2; font-size:1rem; padding:12px;">⏱ MARKER</button>
+    </div>
+
+    <div class="hotkey-hints" id="hotkeyHints">
+      💡 <b>Billentyűk:</b> Szóköz = Lejátszás/Szünet | Enter / M = Marker | Nyilak = Navigáció | Görgő = Zoom / Pásztázás
+    </div>
+  </div>
+
+  <!-- 3) BOTTOM ROW: karaoke display + text block, always stacked full-width -->
+  <div class="bottom-row">
+    <div class="karaoke-col">
+      <div class="karaoke-preview">
+        <div id="karCur" class="kar-cur"></div>
+        <div id="karNext" class="kar-next"></div>
+      </div>
+    </div>
+
+    <div class="text-col panel">
+      <div class="edit-box">
+        <input type="text" id="lineTextInput" placeholder="Kijelölt sor szövege..." disabled>
+      </div>
+
+      <ul id="lineList" class="line-list"></ul>
+      <div style="font-size:0.75rem; color:#888; margin-top:6px; text-align:right;" id="lineCount">0 sor</div>
+
+      <div class="tools-grid">
+        <button id="btnInsertAbove">＋ Fölé</button>
+        <button id="btnInsertBelow">＋ Alá</button>
+        <button id="btnDeleteLine" class="danger">🗑️ Törlés</button>
+        <button id="btnClearTime">🧹 Idő törlése</button>
+        <button id="btnLock">🔒 Zár</button>
+        <button id="btnUnlock">🔓 Nyit</button>
+        <button id="btnExportLrc" class="success" disabled>💾 .LRC</button>
+        <button id="btnExportMp3" class="success" disabled>💾 MP3 ID3</button>
+      </div>
+      <button id="btnClearAllText" class="danger" style="width:100%; margin-top:8px; padding:10px;">🗑️ MINDEN SZÖVEG TÖRLÉSE</button>
+      <button id="btnSaveProj" class="primary" style="width:100%; margin-top:8px; padding:12px;" disabled>💾 Projekt mentése (.lyreki)</button>
+    </div>
+  </div>
+
+</div>
+
+<a id="dlLink" style="display:none;"></a>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================= I18N ============================= */
+const I18N = {
+  hu: {
+    desktopView: "Desktop Nézet", mobileView: "Mobil Nézet",
+    openMp3: "🎵 Audio megnyitása", openSubtitle: "📄 Felirat (.lrc/.txt)",
+    importEmbedded: "💾 Beágyazott dalszöveg", openProject: "📂 Projekt (.lyreki)",
+    noMp3: "Nincs hangfájl", noLyrics: "Nincs szöveg",
+    embeddedLyricsLabel: "Beágyazott szöveg", linesWord: "sor",
+    loadedPrefix: "Betöltve", foundEmbedPrefix: "Talált beágyazás",
+    noEmbedFound: "Nem található beágyazott dalszöveg ebben a fájlban.",
+    typeSylt: "ID3v2 SYLT (szinkronizált dalszöveg)",
+    typeUslt: "ID3v2 USLT (nem szinkronizált dalszöveg)",
+    typeTxxx: "ID3v2 TXXX (egyéni 'LYRICS' mező)",
+    typeComm: "ID3v2 COMM (megjegyzésbe rejtett dalszöveg)",
+    typeLyrics3v2: "Lyrics3v2 (LYRICSBEGIN / LYR mező)",
+    typeLyrics3v1: "Lyrics3v1 (egyszerű, mező nélküli szöveg)",
+    typeMp4Lyr: "MP4/M4A ©lyr atom (iTunes dalszöveg)",
+    typeMp4Freeform: "MP4/M4A egyéni '----' mező (LYRICS)",
+    typeVorbisComment: "Vorbis Comment 'LYRICS' mező (FLAC/OGG)",
+    waveformPlaceholder: "Tölts be egy hangfájlt",
+    zoomOutTitle: "Kicsinyítés", zoomInTitle: "Nagyítás", zoomResetTitle: "Visszaállítás",
+    play: "▶ Lejátszás", pause: "⏸ Szünet", stop: "⏹ Stop", marker: "⏱ MARKER",
+    hotkeyHints: "💡 <b>Billentyűk:</b> Szóköz = Lejátszás/Szünet | Enter / M = Marker | Nyilak = Navigáció | Görgő = Zoom / Pásztázás",
+    lineTextPlaceholder: "Kijelölt sor szövege...",
+    insertAbove: "＋ Fölé", insertBelow: "＋ Alá", deleteLine: "🗑️ Törlés",
+    clearTime: "🧹 Idő törlése", lock: "🔒 Zár", unlock: "🔓 Nyit",
+    exportLrc: "💾 .LRC", exportMp3: "💾 MP3 ID3",
+    clearAllText: "🗑️ MINDEN SZÖVEG TÖRLÉSE",
+    saveProject: "💾 Projekt mentése (.lyreki)",
+    emptyLine: "(üres sor)",
+    alertLockedDelete: "A zárolt sor nem törölhető!",
+    alertLoadMp3First: "Előbb tölts be egy hangfájlt!",
+    alertNoEmbedFound: "Nem található beágyazott dalszöveg ebben a hangfájlban (ellenőrizve: ID3v2 USLT/SYLT/TXXX/COMM, Lyrics3v1/v2, MP4 ©lyr/egyéni mező, Vorbis Comment LYRICS).",
+    alertInvalidProject: "Érvénytelen projekt fájl formátum!",
+    alertProjectReadError: "Hiba a projekt beolvasásakor: ",
+    alertMp3EmbedError: "Hiba az MP3 beágyazásakor: ",
+    alertExportMp3NotMp3: "Az MP3-ba történő beágyazás csak eredeti MP3 hangfájlnál működik.",
+    defaultProjectAudioName: "projekt_audio.mp3",
+    defaultProjectFileBase: "projekt",
+  },
+  en: {
+    desktopView: "Desktop View", mobileView: "Mobile View",
+    openMp3: "🎵 Open Audio", openSubtitle: "📄 Subtitle (.lrc/.txt)",
+    importEmbedded: "💾 Embedded Lyrics", openProject: "📂 Project (.lyreki)",
+    noMp3: "No audio file", noLyrics: "No lyrics",
+    embeddedLyricsLabel: "Embedded lyrics", linesWord: "lines",
+    loadedPrefix: "Loaded", foundEmbedPrefix: "Found embedding",
+    noEmbedFound: "No embedded lyrics found in this file.",
+    typeSylt: "ID3v2 SYLT (synchronized lyrics)",
+    typeUslt: "ID3v2 USLT (unsynchronized lyrics)",
+    typeTxxx: "ID3v2 TXXX (custom 'LYRICS' field)",
+    typeComm: "ID3v2 COMM (lyrics hidden in comment)",
+    typeLyrics3v2: "Lyrics3v2 (LYRICSBEGIN / LYR field)",
+    typeLyrics3v1: "Lyrics3v1 (simple, fieldless text)",
+    typeMp4Lyr: "MP4/M4A ©lyr atom (iTunes lyrics)",
+    typeMp4Freeform: "MP4/M4A custom '----' field (LYRICS)",
+    typeVorbisComment: "Vorbis Comment 'LYRICS' field (FLAC/OGG)",
+    waveformPlaceholder: "Load an audio file",
+    zoomOutTitle: "Zoom out", zoomInTitle: "Zoom in", zoomResetTitle: "Reset",
+    play: "▶ Play", pause: "⏸ Pause", stop: "⏹ Stop", marker: "⏱ MARKER",
+    hotkeyHints: "💡 <b>Hotkeys:</b> Space = Play/Pause | Enter / M = Marker | Arrows = Navigate | Scroll = Zoom / Pan",
+    lineTextPlaceholder: "Selected line text...",
+    insertAbove: "＋ Above", insertBelow: "＋ Below", deleteLine: "🗑️ Delete",
+    clearTime: "🧹 Clear time", lock: "🔒 Lock", unlock: "🔓 Unlock",
+    exportLrc: "💾 .LRC", exportMp3: "💾 MP3 ID3",
+    clearAllText: "🗑️ DELETE ALL TEXT",
+    saveProject: "💾 Save Project (.lyreki)",
+    emptyLine: "(empty line)",
+    alertLockedDelete: "Locked lines can't be deleted!",
+    alertLoadMp3First: "Please load an audio file first!",
+    alertNoEmbedFound: "No embedded lyrics found in this audio file (checked: ID3v2 USLT/SYLT/TXXX/COMM, Lyrics3v1/v2, MP4 ©lyr/custom field, Vorbis Comment LYRICS).",
+    alertInvalidProject: "Invalid project file format!",
+    alertProjectReadError: "Error reading project file: ",
+    alertMp3EmbedError: "Error embedding into MP3: ",
+    alertExportMp3NotMp3: "Embedding into MP3 only works with an original MP3 audio file.",
+    defaultProjectAudioName: "project_audio.mp3",
+    defaultProjectFileBase: "project",
+  }
+};
+const TYPE_KEY_TO_I18N = {
+  sylt: 'typeSylt', uslt: 'typeUslt', txxx: 'typeTxxx', comm: 'typeComm',
+  lyrics3v2: 'typeLyrics3v2', lyrics3v1: 'typeLyrics3v1',
+  mp4lyr: 'typeMp4Lyr', mp4freeform: 'typeMp4Freeform', vorbiscomment: 'typeVorbisComment'
+};
+
+const state = {
+  blocks: [],
+  mp3File: null,
+  mp3Bytes: null,
+  isMp3: false,          // true only if the loaded audio bytes are an actual MPEG/MP3 stream
+  audioURL: null,
+  audioEl: new Audio(),
+  duration_ms: 0,
+  position_ms: 0,
+  samples: null,
+  zoom: 1.0,
+  viewStart_ms: 0,
+  selected: new Set(),
+  currentRow: -1,
+  activePlaybackRow: -1,
+  draggingMarker: -1,
+  wasPlayingBeforeDrag: false,
+  waveColor: '#2d92cc',         //Eredeti színe a hullámformának: #a50900
+  userClickedRow: false,
+  detectedEmbed: null,   // {typeKey, entries} - auto-detected on mp3 load
+  embedLoaded: null,     // {typeKey, count} - after the user actually imports it
+  txtInfo: null,         // {source:'file'|'proj'|'embedded', name, count}
+  lang: 'hu',
+};
+const MIN_ZOOM = 1.0, MAX_ZOOM = 200.0, MARKER_HIT_PX = 20;
+
+function t(key){ return (I18N[state.lang] && I18N[state.lang][key]) || I18N.hu[key] || key; }
+function typeLabel(typeKey){ return t(TYPE_KEY_TO_I18N[typeKey] || typeKey); }
+
+function updateDeviceBadge() {
+  const badge = document.getElementById('deviceMode');
+  const isDesktop = window.innerWidth >= 850;
+  if(badge) badge.textContent = isDesktop ? t('desktopView') : t('mobileView');
+}
+window.addEventListener('resize', updateDeviceBadge);
+
+/* BASE64 HELPERS FOR MP3 EMBEDDING IN PROJECT FILE */
+function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  const CHUNK_SIZE = 0x8000;
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK_SIZE, len)));
+  }
+  return btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+  const binary_string = atob(base64);
+  const len = binary_string.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary_string.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+/* CP1250 ENCODER */
+let cp1250EncodeMap = null;
+function getCp1250EncodeMap(){
+  if(cp1250EncodeMap) return cp1250EncodeMap;
+  cp1250EncodeMap = new Map();
+  try{
+    const dec = new TextDecoder('windows-1250');
+    for(let b=0;b<256;b++){
+      const ch = dec.decode(new Uint8Array([b]));
+      if(!cp1250EncodeMap.has(ch)) cp1250EncodeMap.set(ch, b);
+    }
+  }catch(e){ cp1250EncodeMap = null; }
+  return cp1250EncodeMap;
+}
+function encodeLyricsText(text){
+  const map = getCp1250EncodeMap();
+  const out = [];
+  let ok = true;
+  if(map){
+    for(const ch of text){
+      if(map.has(ch)) out.push(map.get(ch));
+      else { ok = false; break; }
+    }
+  } else ok = false;
+  if(ok) return new Uint8Array(out);
+  const out2 = [];
+  for(const ch of text){
+    const cp = ch.codePointAt(0);
+    out2.push(cp <= 0xFF ? cp : 0x3F);
+  }
+  return new Uint8Array(out2);
+}
+
+function concatBytes(arrs){
+  let len = 0; for(const a of arrs) len += a.length;
+  const out = new Uint8Array(len);
+  let off = 0; for(const a of arrs){ out.set(a, off); off += a.length; }
+  return out;
+}
+function asciiBytes(str){
+  const out = new Uint8Array(str.length);
+  for(let i=0;i<str.length;i++) out[i] = str.charCodeAt(i) & 0xFF;
+  return out;
+}
+function bytesToBinString(bytes, start, end){
+  start = start||0; end = end===undefined? bytes.length : end;
+  const CH = 0x8000; let parts = [];
+  for(let i=start;i<end;i+=CH){
+    parts.push(String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i+CH,end))));
+  }
+  return parts.join('');
+}
+
+const LYRICSBEGIN = "LYRICSBEGIN", LYRICSEND_MARK = "LYRICS200", ID3V1_TAG = "TAG", ID3V1_SIZE = 128;
+
+function buildField(fieldId, dataBytes){
+  return concatBytes([asciiBytes(fieldId), asciiBytes(String(dataBytes.length).padStart(5,'0')), dataBytes]);
+}
+function msToMinSec(ms){
+  const totalSec = Math.floor(ms/1000);
+  return [Math.floor(totalSec/60), totalSec%60];
+}
+function blocksToLyricsEntries(blocks){
+  const entries = [];
+  for(const b of blocks){
+    if(b.time_ms==null) continue;
+    const [m,s] = msToMinSec(b.time_ms);
+    entries.push([m,s,b.text]);
+  }
+  entries.sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+  return entries;
+}
+function buildLyrics3v2Tag(entries, indicator){
+  indicator = indicator || "11";
+  const indField = buildField("IND", asciiBytes(indicator));
+  const lines = entries.map(([m,s,t])=> `[${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}]${t}`);
+  const lyrField = buildField("LYR", encodeLyricsText(lines.join('\r\n')));
+  const body = concatBytes([indField, lyrField]);
+  const totalSize = LYRICSBEGIN.length + body.length;
+  return concatBytes([asciiBytes(LYRICSBEGIN), body, asciiBytes(String(totalSize).padStart(6,'0')), asciiBytes(LYRICSEND_MARK)]);
+}
+function mergeEntriesIntoMp3(mp3Bytes, entries){
+  let audio = mp3Bytes, id3v1 = null;
+  if(audio.length >= ID3V1_SIZE && bytesToBinString(audio, audio.length-ID3V1_SIZE, audio.length-ID3V1_SIZE+3) === ID3V1_TAG){
+    id3v1 = audio.subarray(audio.length-ID3V1_SIZE);
+    audio = audio.subarray(0, audio.length-ID3V1_SIZE);
+  }
+  if(bytesToBinString(audio, Math.max(0,audio.length-LYRICSEND_MARK.length), audio.length) === LYRICSEND_MARK){
+    const bin = bytesToBinString(audio);
+    const start = bin.lastIndexOf(LYRICSBEGIN);
+    if(start !== -1) audio = audio.subarray(0, start);
+  }
+  const newTag = buildLyrics3v2Tag(entries);
+  return concatBytes([audio, newTag, id3v1 || new Uint8Array(0)]);
+}
+
+/* PARSER */
+function parseEmbeddedLyrics3v2(mp3Bytes) {
+  const bin = bytesToBinString(mp3Bytes);
+  const endIdx = bin.lastIndexOf(LYRICSEND_MARK);
+  if (endIdx === -1) return null;
+  const startIdx = bin.lastIndexOf(LYRICSBEGIN, endIdx);
+  if (startIdx === -1) return null;
+  const block = bin.slice(startIdx + LYRICSBEGIN.length, endIdx - 6);
+  let lyrText = ""; let pos = 0;
+  while (pos < block.length) {
+    const fieldId = block.slice(pos, pos + 3);
+    const fieldSize = parseInt(block.slice(pos + 3, pos + 8), 10);
+    if (isNaN(fieldSize)) break;
+    const fieldDataBytes = mp3Bytes.subarray(
+      startIdx + LYRICSBEGIN.length + pos + 8,
+      startIdx + LYRICSBEGIN.length + pos + 8 + fieldSize
+    );
+    if (fieldId === "LYR") {
+      try {
+        const decoder = new TextDecoder("windows-1250");
+        lyrText = decoder.decode(fieldDataBytes);
+      } catch (e) { lyrText = bytesToBinString(fieldDataBytes); }
+      break;
+    }
+    pos += 8 + fieldSize;
+  }
+  if (!lyrText) return null;
+  return parseLrcText(lyrText);
+}
+
+/* --- LYRICS3v1 (régi, egyszerű, mező nélküli formátum) --- */
+function parseLyrics3v1(mp3Bytes){
+  const bin = bytesToBinString(mp3Bytes);
+  const endIdx = bin.lastIndexOf("LYRICSEND");
+  if (endIdx === -1) return null;
+  const startIdx = bin.lastIndexOf("LYRICSBEGIN", endIdx);
+  if (startIdx === -1) return null;
+  const text = bin.slice(startIdx + "LYRICSBEGIN".length, endIdx);
+  if (!text.trim()) return null;
+  return parseLrcText(text);
+}
+
+/* --- ID3v2 FRAME PARSING (USLT / SYLT / TXXX / COMM) --- */
+function findTextNullTerm(bytes, start, encoding){
+  if (encoding === 1 || encoding === 2) { // UTF-16 (BOM or BE) -> 2-byte null
+    for (let i = start; i + 1 < bytes.length; i += 2) {
+      if (bytes[i] === 0 && bytes[i+1] === 0) return i;
+    }
+    return bytes.length;
+  }
+  for (let i = start; i < bytes.length; i++) {
+    if (bytes[i] === 0) return i;
+  }
+  return bytes.length;
+}
+function decodeId3Text(bytes, encoding){
+  try{
+    if (encoding === 0) return new TextDecoder('iso-8859-1').decode(bytes);
+    if (encoding === 1) {
+      if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return new TextDecoder('utf-16le').decode(bytes.subarray(2));
+      if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) return new TextDecoder('utf-16be').decode(bytes.subarray(2));
+      return new TextDecoder('utf-16le').decode(bytes);
+    }
+    if (encoding === 2) return new TextDecoder('utf-16be').decode(bytes);
+    if (encoding === 3) return new TextDecoder('utf-8').decode(bytes);
+  }catch(e){}
+  try{ return new TextDecoder('utf-8').decode(bytes); }catch(e){ return bytesToBinString(bytes); }
+}
+// ID3v2.2 used 3-character frame IDs; map the ones we care about to their v2.3/2.4 equivalents
+// so the rest of the code can treat every ID3v2 revision (2.2 / 2.3 / 2.4) the same way.
+const ID3V22_FRAME_ALIASES = { ULT: 'USLT', SLT: 'SYLT', COM: 'COMM', TXX: 'TXXX' };
+function parseID3v2Frames(bytes){
+  if (bytes.length < 10) return null;
+  if (!(bytes[0]===0x49 && bytes[1]===0x44 && bytes[2]===0x33)) return null; // "ID3"
+  const verMajor = bytes[3];
+  const flags = bytes[5];
+  const tagSize = ((bytes[6]&0x7F)<<21)|((bytes[7]&0x7F)<<14)|((bytes[8]&0x7F)<<7)|(bytes[9]&0x7F);
+  let offset = 10;
+  if (flags & 0x40) { // extended header present, skip it
+    const extSize = verMajor >= 4
+      ? (((bytes[offset]&0x7F)<<21)|((bytes[offset+1]&0x7F)<<14)|((bytes[offset+2]&0x7F)<<7)|(bytes[offset+3]&0x7F))
+      : ((bytes[offset]<<24)|(bytes[offset+1]<<16)|(bytes[offset+2]<<8)|bytes[offset+3]);
+    offset += 4 + extSize;
+  }
+  const end = Math.min(10 + tagSize, bytes.length);
+  const frames = [];
+  if (verMajor === 2) {
+    // ID3v2.2: 3-char frame id, 3-byte (non-synchsafe) size, no frame flags
+    while (offset + 6 <= end) {
+      if (bytes[offset] === 0) break; // padding
+      const rawId = String.fromCharCode(bytes[offset], bytes[offset+1], bytes[offset+2]);
+      const frameSize = (bytes[offset+3]<<16)|(bytes[offset+4]<<8)|bytes[offset+5];
+      const dataStart = offset + 6, dataEnd = dataStart + frameSize;
+      if (frameSize <= 0 || dataEnd > bytes.length) break;
+      frames.push({ id: ID3V22_FRAME_ALIASES[rawId] || rawId, data: bytes.subarray(dataStart, dataEnd) });
+      offset = dataEnd;
+    }
+  } else {
+    while (offset + 10 <= end) {
+      if (bytes[offset] === 0) break; // padding
+      const frameId = String.fromCharCode(bytes[offset], bytes[offset+1], bytes[offset+2], bytes[offset+3]);
+      let frameSize;
+      if (verMajor >= 4) {
+        frameSize = ((bytes[offset+4]&0x7F)<<21)|((bytes[offset+5]&0x7F)<<14)|((bytes[offset+6]&0x7F)<<7)|(bytes[offset+7]&0x7F);
+      } else {
+        frameSize = (bytes[offset+4]<<24)|(bytes[offset+5]<<16)|(bytes[offset+6]<<8)|bytes[offset+7];
+      }
+      const dataStart = offset + 10;
+      const dataEnd = dataStart + frameSize;
+      if (frameSize <= 0 || dataEnd > bytes.length) break;
+      frames.push({ id: frameId, data: bytes.subarray(dataStart, dataEnd) });
+      offset = dataEnd;
+    }
+  }
+  return frames;
+}
+function parseUSLTFrame(data){
+  const encoding = data[0];
+  let pos = 4; // skip encoding(1) + language(3)
+  const descEnd = findTextNullTerm(data, pos, encoding);
+  pos = descEnd + (encoding===1||encoding===2 ? 2 : 1);
+  const lyricsText = decodeId3Text(data.subarray(pos), encoding);
+  if (!lyricsText || !lyricsText.trim()) return null;
+  return parseLrcText(lyricsText);
+}
+function parseSYLTFrame(data){
+  const encoding = data[0];
+  const timestampFormat = data[4]; // 1 = MPEG frames, 2 = milliseconds
+  let pos = 6; // skip encoding(1) + language(3) + timestampFormat(1) + contentType(1)
+  const descEnd = findTextNullTerm(data, pos, encoding);
+  pos = descEnd + (encoding===1||encoding===2 ? 2 : 1);
+  const entries = [];
+  while (pos < data.length) {
+    const textEnd = findTextNullTerm(data, pos, encoding);
+    const text = decodeId3Text(data.subarray(pos, textEnd), encoding);
+    pos = textEnd + (encoding===1||encoding===2 ? 2 : 1);
+    if (pos + 4 > data.length) break;
+    const raw = (data[pos]<<24)|(data[pos+1]<<16)|(data[pos+2]<<8)|data[pos+3];
+    pos += 4;
+    const time_ms = timestampFormat === 2 ? raw : Math.round(raw * (1000/75));
+    entries.push({ time_ms, text });
+  }
+  return entries.length ? entries : null;
+}
+// TXXX: custom "KEY: value" text frame. Many synth/karaoke tools stash lyrics here under a
+// descriptor like "LYRICS", "UNSYNCEDLYRICS", "Lyrics-EN", etc. — matched loosely on purpose.
+function parseTXXXFrame(data){
+  const encoding = data[0];
+  let pos = 1;
+  const descEnd = findTextNullTerm(data, pos, encoding);
+  const descriptor = decodeId3Text(data.subarray(pos, descEnd), encoding);
+  pos = descEnd + (encoding===1||encoding===2 ? 2 : 1);
+  if (!/lyric/i.test(descriptor || '')) return null;
+  const valueText = decodeId3Text(data.subarray(pos), encoding);
+  if (!valueText || !valueText.trim()) return null;
+  return parseLrcText(valueText);
+}
+// COMM: ordinary comment frame, used as a last-resort fallback only when its short
+// description explicitly mentions "lyric" — avoids mistaking unrelated comments for lyrics.
+function parseCOMMFrame(data){
+  const encoding = data[0];
+  let pos = 4; // skip encoding(1) + language(3)
+  const descEnd = findTextNullTerm(data, pos, encoding);
+  const descriptor = decodeId3Text(data.subarray(pos, descEnd), encoding);
+  pos = descEnd + (encoding===1||encoding===2 ? 2 : 1);
+  if (!/lyric/i.test(descriptor || '')) return null;
+  const commentText = decodeId3Text(data.subarray(pos), encoding);
+  if (!commentText || !commentText.trim()) return null;
+  return parseLrcText(commentText);
+}
+// Given a set of already-parsed ID3v2 frames, try every known lyrics-carrying frame type,
+// most-reliable first: SYLT (synced) > USLT (unsynced) > TXXX "*lyric*" > COMM "*lyric*".
+function lyricsFromID3Frames(frames){
+  if (!frames) return null;
+  const sylt = frames.find(f => f.id === 'SYLT');
+  if (sylt) { try { const e = parseSYLTFrame(sylt.data); if (e && e.length) return { typeKey: 'sylt', entries: e }; } catch(err){} }
+  const uslt = frames.find(f => f.id === 'USLT');
+  if (uslt) { try { const e = parseUSLTFrame(uslt.data); if (e && e.length) return { typeKey: 'uslt', entries: e }; } catch(err){} }
+  for (const f of frames.filter(f => f.id === 'TXXX')) {
+    try { const e = parseTXXXFrame(f.data); if (e && e.length) return { typeKey: 'txxx', entries: e }; } catch(err){}
+  }
+  for (const f of frames.filter(f => f.id === 'COMM')) {
+    try { const e = parseCOMMFrame(f.data); if (e && e.length) return { typeKey: 'comm', entries: e }; } catch(err){}
+  }
+  return null;
+}
+
+/* --- RIFF/WAV & IFF/AIFF CHUNK SCANNING: both can carry a full embedded ID3v2 tag --- */
+function findRiffChunk(bytes, wantedIds){
+  if (bytes.length < 12 || bytesToBinString(bytes,0,4) !== 'RIFF') return null;
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const id = bytesToBinString(bytes, offset, offset+4);
+    const size = bytes[offset+4]|(bytes[offset+5]<<8)|(bytes[offset+6]<<16)|(bytes[offset+7]<<24);
+    const dataStart = offset+8;
+    if (size < 0) break;
+    if (wantedIds.includes(id)) return bytes.subarray(dataStart, Math.min(dataStart+size, bytes.length));
+    offset = dataStart + size + (size % 2); // chunks are word-aligned (padding byte)
+  }
+  return null;
+}
+function findAiffChunk(bytes, wantedIds){
+  if (bytes.length < 12 || bytesToBinString(bytes,0,4) !== 'FORM') return null;
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const id = bytesToBinString(bytes, offset, offset+4);
+    const size = (bytes[offset+4]<<24)|(bytes[offset+5]<<16)|(bytes[offset+6]<<8)|bytes[offset+7];
+    const dataStart = offset+8;
+    if (size < 0) break;
+    if (wantedIds.includes(id)) return bytes.subarray(dataStart, Math.min(dataStart+size, bytes.length));
+    offset = dataStart + size + (size % 2);
+  }
+  return null;
+}
+
+/* --- MP4 / M4A ATOM (BOX) SCANNING: iTunes-style "©lyr" and freeform "----" lyrics atoms --- */
+function mp4ReadBoxHeader(bytes, offset){
+  let size = ((bytes[offset]<<24)|(bytes[offset+1]<<16)|(bytes[offset+2]<<8)|bytes[offset+3])>>>0;
+  const type = bytesToBinString(bytes, offset+4, offset+8);
+  let headerSize = 8;
+  if (size === 1) {
+    const hi = ((bytes[offset+8]<<24)|(bytes[offset+9]<<16)|(bytes[offset+10]<<8)|bytes[offset+11])>>>0;
+    const lo = ((bytes[offset+12]<<24)|(bytes[offset+13]<<16)|(bytes[offset+14]<<8)|bytes[offset+15])>>>0;
+    size = hi*4294967296 + lo; headerSize = 16;
+  }
+  return { type, headerSize, size };
+}
+function mp4FindBox(bytes, start, end, wantedType){
+  let offset = start;
+  while (offset + 8 <= end) {
+    const { type, headerSize, size } = mp4ReadBoxHeader(bytes, offset);
+    const boxSize = size === 0 ? (end - offset) : size;
+    if (boxSize <= 0) break;
+    if (type === wantedType) return { start: offset+headerSize, end: offset+boxSize };
+    offset += boxSize;
+  }
+  return null;
+}
+function mp4FindAllBoxes(bytes, start, end){
+  const list = []; let offset = start;
+  while (offset + 8 <= end) {
+    const { type, headerSize, size } = mp4ReadBoxHeader(bytes, offset);
+    const boxSize = size === 0 ? (end - offset) : size;
+    if (boxSize <= 0) break;
+    list.push({ type, start: offset+headerSize, end: offset+boxSize });
+    offset += boxSize;
+  }
+  return list;
+}
+function mp4ReadDataAtomText(bytes, boxStart, boxEnd){
+  const dataBox = mp4FindBox(bytes, boxStart, boxEnd, 'data');
+  if (!dataBox) return null;
+  const payloadStart = dataBox.start + 8; // skip type-indicator(4) + locale/reserved(4)
+  if (payloadStart > dataBox.end) return null;
+  try { return new TextDecoder('utf-8').decode(bytes.subarray(payloadStart, dataBox.end)); }
+  catch(e){ return bytesToBinString(bytes, payloadStart, dataBox.end); }
+}
+function parseEmbeddedLyricsMp4(bytes){
+  const moov = mp4FindBox(bytes, 0, bytes.length, 'moov');
+  if (!moov) return null;
+  const udta = mp4FindBox(bytes, moov.start, moov.end, 'udta');
+  if (!udta) return null;
+  const metaBox = mp4FindBox(bytes, udta.start, udta.end, 'meta');
+  if (!metaBox) return null;
+  const ilst = mp4FindBox(bytes, metaBox.start+4, metaBox.end, 'ilst'); // +4 skips meta's version/flags
+  if (!ilst) return null;
+  const children = mp4FindAllBoxes(bytes, ilst.start, ilst.end);
+
+  const lyr = children.find(c => c.type === '\u00a9lyr'); // "©lyr" — standard iTunes lyrics atom
+  if (lyr) {
+    const text = mp4ReadDataAtomText(bytes, lyr.start, lyr.end);
+    if (text && text.trim()) return { typeKey: 'mp4lyr', entries: parseLrcText(text) };
+  }
+  for (const ff of children.filter(c => c.type === '----')) { // freeform custom atom
+    const nameBox = mp4FindBox(bytes, ff.start, ff.end, 'name');
+    if (!nameBox) continue;
+    let nameText = '';
+    try { nameText = new TextDecoder('utf-8').decode(bytes.subarray(nameBox.start+4, nameBox.end)); } catch(e){}
+    if (/lyric/i.test(nameText)) {
+      const text = mp4ReadDataAtomText(bytes, ff.start, ff.end);
+      if (text && text.trim()) return { typeKey: 'mp4freeform', entries: parseLrcText(text) };
+    }
+  }
+  return null;
+}
+
+/* --- VORBIS COMMENT (shared by FLAC and OGG/Opus): "LYRICS=" / "UNSYNCEDLYRICS=" field --- */
+function parseVorbisCommentBlock(data){
+  let pos = 0;
+  function readU32LE(){ if (pos+4>data.length) return null; const v = data[pos]|(data[pos+1]<<8)|(data[pos+2]<<16)|(data[pos+3]<<24); pos+=4; return v>>>0; }
+  const vendorLen = readU32LE();
+  if (vendorLen == null) return null;
+  pos += vendorLen;
+  const count = readU32LE();
+  if (count == null) return null;
+  const map = {};
+  for (let i=0; i<count; i++) {
+    const len = readU32LE();
+    if (len == null || pos+len > data.length) break;
+    let raw; try { raw = new TextDecoder('utf-8').decode(data.subarray(pos, pos+len)); } catch(e){ raw = bytesToBinString(data, pos, pos+len); }
+    pos += len;
+    const eq = raw.indexOf('=');
+    if (eq === -1) continue;
+    const key = raw.slice(0, eq).toLowerCase();
+    (map[key] = map[key] || []).push(raw.slice(eq+1));
+  }
+  return map;
+}
+function lyricsTextFromVorbisMap(map){
+  if (!map) return null;
+  for (const key of ['lyrics','unsyncedlyrics','syncedlyrics','lyric']) {
+    if (map[key] && map[key][0] && map[key][0].trim()) return map[key][0];
+  }
+  return null;
+}
+function parseFlacVorbisComment(bytes){
+  if (bytes.length < 4 || bytesToBinString(bytes,0,4) !== 'fLaC') return null;
+  let offset = 4;
+  while (offset + 4 <= bytes.length) {
+    const headerByte = bytes[offset];
+    const isLast = (headerByte & 0x80) !== 0;
+    const blockType = headerByte & 0x7F;
+    const blockLen = (bytes[offset+1]<<16)|(bytes[offset+2]<<8)|bytes[offset+3];
+    const dataStart = offset+4, dataEnd = dataStart+blockLen;
+    if (blockType === 4) return parseVorbisCommentBlock(bytes.subarray(dataStart, Math.min(dataEnd, bytes.length)));
+    offset = dataEnd;
+    if (isLast || blockLen < 0 || dataEnd > bytes.length) break;
+  }
+  return null;
+}
+// Minimal Ogg page demuxer: reassembles packets split/spread across pages/segments.
+function extractOggPackets(bytes, maxPackets){
+  const packets = []; let offset = 0; let chunks = [];
+  while (offset + 27 <= bytes.length) {
+    if (!(bytes[offset]===0x4F && bytes[offset+1]===0x67 && bytes[offset+2]===0x67 && bytes[offset+3]===0x53)) break; // "OggS"
+    const pageSegments = bytes[offset+26];
+    const segTableStart = offset+27;
+    if (segTableStart + pageSegments > bytes.length) break;
+    let pos = segTableStart + pageSegments;
+    for (let i=0; i<pageSegments; i++) {
+      const segLen = bytes[segTableStart+i];
+      chunks.push(bytes.subarray(pos, pos+segLen));
+      pos += segLen;
+      if (segLen < 255) {
+        packets.push(concatBytes(chunks)); chunks = [];
+        if (packets.length >= maxPackets) return packets;
+      }
+    }
+    offset = pos;
+  }
+  if (chunks.length) packets.push(concatBytes(chunks));
+  return packets;
+}
+function parseOggVorbisComment(bytes){
+  if (bytes.length < 4 || bytesToBinString(bytes,0,4) !== 'OggS') return null;
+  const packets = extractOggPackets(bytes, 2);
+  if (packets.length < 2) return null;
+  const p = packets[1];
+  let dataStart;
+  if (p.length >= 7 && bytesToBinString(p,1,7) === 'vorbis') dataStart = 7;       // Vorbis comment header
+  else if (p.length >= 8 && bytesToBinString(p,0,8) === 'OpusTags') dataStart = 8; // Opus tags packet
+  else dataStart = 7;
+  return parseVorbisCommentBlock(p.subarray(dataStart));
+}
+
+/* --- ÁLTALÁNOS DETEKTOR: bármilyen ismert dalszöveg-beágyazást megtalál, konténer-formátumtól
+     függetlenül (MP3, WAV, AIFF/AIF, M4A, FLAC, OGG) — sokféle szintetizátor/karaoke eszköz
+     máshova és másképp ágyazza be a szöveget, ezért minden ismert lehetőséget megvizsgálunk. --- */
+function detectEmbeddedLyrics(bytes){
+  // 1) ID3v2 tag közvetlenül a fájl elején (MP3-nál a szokásos hely; néhány más konténernél is előfordul)
+  let byId3 = lyricsFromID3Frames(parseID3v2Frames(bytes));
+  if (byId3) return byId3;
+
+  // 2) WAV (RIFF/WAVE): ID3v2 tag egy "id3 "/"ID3 " chunkban
+  const wavId3 = findRiffChunk(bytes, ['id3 ', 'ID3 ']);
+  if (wavId3) { byId3 = lyricsFromID3Frames(parseID3v2Frames(wavId3)); if (byId3) return byId3; }
+
+  // 3) AIFF/AIF (FORM/AIFF or FORM/AIFC): ID3v2 tag egy "ID3 " chunkban
+  const aiffId3 = findAiffChunk(bytes, ['ID3 ']);
+  if (aiffId3) { byId3 = lyricsFromID3Frames(parseID3v2Frames(aiffId3)); if (byId3) return byId3; }
+
+  // 4) M4A/MP4: iTunes "©lyr" atom vagy egyéni "----" freeform mező (LYRICS/UNSYNCEDLYRICS)
+  try { const mp4 = parseEmbeddedLyricsMp4(bytes); if (mp4 && mp4.entries && mp4.entries.length) return mp4; } catch(e){}
+
+  // 5) FLAC: Vorbis Comment blokk "LYRICS"/"UNSYNCEDLYRICS" mezője
+  try {
+    const flacMap = parseFlacVorbisComment(bytes);
+    const text = lyricsTextFromVorbisMap(flacMap);
+    if (text) { const e = parseLrcText(text); if (e.length) return { typeKey: 'vorbiscomment', entries: e }; }
+  } catch(e){}
+
+  // 6) OGG (Vorbis/Opus): Vorbis Comment fejléc "LYRICS"/"UNSYNCEDLYRICS" mezője
+  try {
+    const oggMap = parseOggVorbisComment(bytes);
+    const text = lyricsTextFromVorbisMap(oggMap);
+    if (text) { const e = parseLrcText(text); if (e.length) return { typeKey: 'vorbiscomment', entries: e }; }
+  } catch(e){}
+
+  // 7) Lyrics3v2 / Lyrics3v1: klasszikus, konténer-független MP3-append formátumok
+  const v2entries = parseEmbeddedLyrics3v2(bytes);
+  if (v2entries && v2entries.length) return { typeKey: 'lyrics3v2', entries: v2entries };
+
+  const v1entries = parseLyrics3v1(bytes);
+  if (v1entries && v1entries.length) return { typeKey: 'lyrics3v1', entries: v1entries };
+
+  return null;
+}
+
+const LRC_TAG_RE = /\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+function parseLrcText(content){
+  const entries = [];
+  for(let raw of content.split(/\r\n|\n|\r/)){
+    if(!raw.trim()) continue;
+    LRC_TAG_RE.lastIndex = 0;
+    const tags = [...raw.matchAll(LRC_TAG_RE)];
+    if(!tags.length){ entries.push({time_ms:null, text:raw.trim()}); continue; }
+    const last = tags[tags.length-1];
+    const text = raw.slice(last.index+last[0].length).trim();
+    for(const m of tags){
+      const minutes = parseInt(m[1]), seconds = parseInt(m[2]);
+      let fracStr = (m[3] || "0") + "00";
+      const centis = parseInt(fracStr.slice(0,2))||0;
+      entries.push({time_ms: (minutes*60+seconds)*1000 + centis*10, text});
+    }
+  }
+  return entries;
+}
+
+function msToLrcTime(ms){
+  const totalSeconds = ms/1000.0;
+  const minutes = Math.floor(totalSeconds/60);
+  const seconds = totalSeconds - minutes*60;
+  return `${String(minutes).padStart(2,'0')}:${seconds.toFixed(2).padStart(5,'0')}`;
+}
+
+/* DOM REFS */
+const $ = id=>document.getElementById(id);
+const wfCanvas = $('wfCanvas'), wfEmpty = $('wfEmpty'), hscroll=$('hscroll');
+const mp3Label=$('mp3Label'), txtLabel=$('txtLabel'), embedInfo=$('embedInfo');
+const mp3Input=$('mp3Input'), txtInput=$('txtInput'), projInput=$('projInput');
+const btnImportEmbedded=$('btnImportEmbedded'), btnSaveProj=$('btnSaveProj');
+const btnExportLrc=$('btnExportLrc'), btnExportMp3=$('btnExportMp3');
+const btnZoomOut=$('btnZoomOut'), btnZoomIn=$('btnZoomIn'), btnZoomReset=$('btnZoomReset'), zoomLbl=$('zoomLbl');
+const curTime=$('curTime'), totTime=$('totTime');
+const btnPlay=$('btnPlay'), btnStop=$('btnStop'), btnMark=$('btnMark');
+const lineList=$('lineList'), lineCount=$('lineCount');
+const karCur=$('karCur'), karNext=$('karNext');
+const lineTextInput=$('lineTextInput');
+const btnInsertAbove=$('btnInsertAbove'), btnInsertBelow=$('btnInsertBelow'), btnDeleteLine=$('btnDeleteLine');
+const btnClearTime=$('btnClearTime'), btnLock=$('btnLock'), btnUnlock=$('btnUnlock');
+const btnClearAllText=$('btnClearAllText');
+const dlLink=$('dlLink');
+const lblOpenMp3=$('lblOpenMp3'), lblOpenSubtitle=$('lblOpenSubtitle'), lblOpenProject=$('lblOpenProject');
+const hotkeyHints=$('hotkeyHints');
+const btnLangHu=$('btnLangHu'), btnLangEn=$('btnLangEn');
+
+/* ============================= LABEL / TEXT REFRESH ============================= */
+function updateMp3Label(){ mp3Label.textContent = state.mp3File ? state.mp3File.name : t('noMp3'); }
+
+function updateTxtLabel(){
+  if(!state.txtInfo){ txtLabel.textContent = t('noLyrics'); return; }
+  const { source, name, count } = state.txtInfo;
+  if(source === 'embedded'){
+    txtLabel.textContent = `${t('embeddedLyricsLabel')} (${count} ${t('linesWord')})`;
+  } else {
+    txtLabel.textContent = `${name} (${count} ${t('linesWord')})`;
+  }
+}
+
+function updateEmbedInfo(){
+  if(state.embedLoaded){
+    embedInfo.textContent = `${t('loadedPrefix')}: ${typeLabel(state.embedLoaded.typeKey)} (${state.embedLoaded.count} ${t('linesWord')})`;
+    embedInfo.style.color = '#57d87f';
+  } else if(state.detectedEmbed){
+    embedInfo.textContent = `${t('foundEmbedPrefix')}: ${typeLabel(state.detectedEmbed.typeKey)} (${state.detectedEmbed.entries.length} ${t('linesWord')})`;
+    embedInfo.style.color = '#57d87f';
+  } else if(state.mp3File){
+    embedInfo.textContent = t('noEmbedFound');
+    embedInfo.style.color = '#888';
+  } else {
+    embedInfo.textContent = '';
+  }
+}
+
+function applyLanguage(){
+  document.documentElement.lang = state.lang;
+  lblOpenMp3.textContent = t('openMp3');
+  lblOpenSubtitle.textContent = t('openSubtitle');
+  btnImportEmbedded.textContent = t('importEmbedded');
+  lblOpenProject.textContent = t('openProject');
+  wfEmpty.textContent = t('waveformPlaceholder');
+  btnZoomOut.title = t('zoomOutTitle');
+  btnZoomIn.title = t('zoomInTitle');
+  btnZoomReset.title = t('zoomResetTitle');
+  btnPlay.textContent = (state.mp3File && !state.audioEl.paused) ? t('pause') : t('play');
+  btnStop.textContent = t('stop');
+  btnMark.textContent = t('marker');
+  hotkeyHints.innerHTML = t('hotkeyHints');
+  lineTextInput.placeholder = t('lineTextPlaceholder');
+  btnInsertAbove.textContent = t('insertAbove');
+  btnInsertBelow.textContent = t('insertBelow');
+  btnDeleteLine.textContent = t('deleteLine');
+  btnClearTime.textContent = t('clearTime');
+  btnLock.textContent = t('lock');
+  btnUnlock.textContent = t('unlock');
+  btnExportLrc.textContent = t('exportLrc');
+  btnExportMp3.textContent = t('exportMp3');
+  btnClearAllText.textContent = t('clearAllText');
+  btnSaveProj.textContent = t('saveProject');
+
+  updateDeviceBadge();
+  updateMp3Label();
+  updateTxtLabel();
+  updateEmbedInfo();
+  lineCount.textContent = state.blocks.length + ' ' + t('linesWord');
+  renderList();
+}
+
+btnLangHu.addEventListener('click', ()=>{
+  if(state.lang==='hu') return;
+  state.lang='hu'; btnLangHu.classList.add('active'); btnLangEn.classList.remove('active');
+  applyLanguage();
+});
+btnLangEn.addEventListener('click', ()=>{
+  if(state.lang==='en') return;
+  state.lang='en'; btnLangEn.classList.add('active'); btnLangHu.classList.remove('active');
+  applyLanguage();
+});
+
+/* AUDIO & CANVAS */
+// Supported audio container extensions (for the file picker, MIME guessing and filename stripping)
+const AUDIO_EXT_RE = /\.(mp3|wav|aif|aiff|m4a|flac|ogg|oga)$/i;
+function stripAudioExt(name){ return (name || '').replace(AUDIO_EXT_RE, ''); }
+function guessAudioMime(fileName){
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  const map = { mp3:'audio/mpeg', wav:'audio/wav', aif:'audio/aiff', aiff:'audio/aiff', m4a:'audio/mp4', flac:'audio/flac', ogg:'audio/ogg', oga:'audio/ogg' };
+  return map[ext] || 'audio/mpeg';
+}
+// Only an actual MPEG audio stream (ID3v2 tag or a raw frame sync) can be re-embedded and
+// exported as MP3 — needed to safely gate the "💾 MP3 ID3" export for non-MP3 sources.
+function isMp3Bytes(bytes){
+  if (!bytes || bytes.length < 3) return false;
+  if (bytes[0]===0x49 && bytes[1]===0x44 && bytes[2]===0x33) return true; // "ID3"
+  if (bytes[0]===0xFF && (bytes[1]&0xE0)===0xE0) return true; // MPEG frame sync
+  return false;
+}
+async function loadMp3Buffer(buf, fileName) {
+  state.mp3File = { name: fileName };
+  state.mp3Bytes = new Uint8Array(buf);
+  state.isMp3 = isMp3Bytes(state.mp3Bytes);
+  if(state.audioURL) URL.revokeObjectURL(state.audioURL);
+  const blob = new Blob([buf], {type: guessAudioMime(fileName)});
+  state.audioURL = URL.createObjectURL(blob);
+  state.audioEl.src = state.audioURL;
+  updateMp3Label();
+  wfEmpty.style.display = 'none';
+  btnImportEmbedded.disabled = false;
+
+  state.detectedEmbed = null;
+  state.embedLoaded = null;
+  try { state.detectedEmbed = detectEmbeddedLyrics(state.mp3Bytes); } catch(e){ state.detectedEmbed = null; }
+  updateEmbedInfo();
+
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const actx = new AC();
+    const decoded = await actx.decodeAudioData(buf.slice(0));
+    const mono = decoded.getChannelData(0);
+    const targetRate = 4000;
+    const factor = Math.max(1, Math.round(decoded.sampleRate/targetRate));
+    const outLen = Math.floor(mono.length/factor);
+    const mins = new Float32Array(outLen), maxs = new Float32Array(outLen);
+    for(let i=0;i<outLen;i++){
+      let mn=1, mx=-1; const base=i*factor;
+      for(let k=0;k<factor;k++){
+        const v = mono[base+k]; if(v<mn) mn=v; if(v>mx) mx=v;
+      }
+      mins[i]=mn; maxs[i]=mx;
+    }
+    state.samples = {mins, maxs, rate: targetRate};
+    state.duration_ms = Math.round(decoded.duration*1000);
+    actx.close();
+  }catch(e){ state.samples = null; }
+  state.zoom = MIN_ZOOM; state.viewStart_ms = 0;
+  resizeCanvas(); drawWaveform(); syncZoomControls(); checkReadyToSave();
+}
+
+async function loadMp3File(file){
+  const buf = await file.arrayBuffer();
+  await loadMp3Buffer(buf, file.name);
+}
+
+state.audioEl.addEventListener('loadedmetadata', ()=>{
+  if(!state.duration_ms) state.duration_ms = Math.round(state.audioEl.duration*1000);
+  totTime.textContent = msToLrcTime(state.duration_ms);
+  syncZoomControls();
+});
+state.audioEl.addEventListener('play', ()=>{ btnPlay.textContent = t('pause'); });
+state.audioEl.addEventListener('pause', ()=>{ btnPlay.textContent = t('play'); });
+state.audioEl.addEventListener('timeupdate', ()=>{
+  state.position_ms = Math.round(state.audioEl.currentTime*1000);
+  curTime.textContent = msToLrcTime(state.position_ms);
+  drawWaveform(); updateActivePlaybackLine();
+});
+
+function togglePlay(){ if(state.mp3File) state.audioEl.paused ? state.audioEl.play() : state.audioEl.pause(); }
+function stopPlayback(){ if(state.mp3File){ state.audioEl.pause(); state.audioEl.currentTime=0; } }
+function seekTo(ms){ if(state.mp3File) state.audioEl.currentTime = Math.max(0, ms/1000); }
+
+function resizeCanvas(){
+  const rect = wfCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  wfCanvas.width = Math.max(1, Math.round(rect.width*dpr));
+  wfCanvas.height = Math.max(1, Math.round(180*dpr));
+}
+window.addEventListener('resize', ()=>{ resizeCanvas(); drawWaveform(); });
+
+function visibleDurationMs(){ return state.duration_ms<=0 ? 0 : Math.max(1, Math.round(state.duration_ms/state.zoom)); }
+function clampViewStart(ms){ return Math.max(0, Math.min(ms, Math.max(0, state.duration_ms-visibleDurationMs()))); }
+function setViewStart(ms){ state.viewStart_ms = clampViewStart(ms); syncZoomControls(); drawWaveform(); }
+function zoomAt(factor){
+  if(state.duration_ms<=0) return;
+  const centerMs = state.position_ms;
+  state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.zoom*factor));
+  state.viewStart_ms = clampViewStart(centerMs - visibleDurationMs()/2);
+  syncZoomControls(); drawWaveform();
+}
+function xToMs(x){
+  const w = wfCanvas.getBoundingClientRect().width || 1;
+  return Math.round(state.viewStart_ms + Math.max(0, Math.min(1, x/w))*visibleDurationMs());
+}
+function msToX(ms){
+  const vis = visibleDurationMs();
+  return vis<=0 ? 0 : ((ms-state.viewStart_ms)/vis)*(wfCanvas.getBoundingClientRect().width || 1);
+}
+function markerAtX(x){
+  let bestIdx=null, bestDist=null;
+  for(let idx=0; idx<state.blocks.length; idx++){
+    if(state.blocks[idx].time_ms==null) continue;
+    const dist = Math.abs(msToX(state.blocks[idx].time_ms)-x);
+    if(dist<=MARKER_HIT_PX && (bestDist===null || dist<bestDist)){ bestDist=dist; bestIdx=idx; }
+  }
+  return bestIdx;
+}
+
+function drawWaveform(){
+  const ctx = wfCanvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const w = wfCanvas.width/dpr, h = wfCanvas.height/dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle = '#101012'; ctx.fillRect(0,0,w,h);
+
+  if(state.samples && state.duration_ms>0){
+    const {mins,maxs,rate} = state.samples;
+    const vis = visibleDurationMs();
+    const s0 = Math.max(0, Math.floor(state.viewStart_ms/1000*rate));
+    const s1 = Math.min(mins.length, Math.floor((state.viewStart_ms+vis)/1000*rate));
+    const segLen = s1-s0;
+    if(segLen>0){
+      const widthPx = Math.max(1, Math.floor(w));
+      const bucket = Math.max(1, Math.floor(segLen/widthPx));
+      ctx.strokeStyle = state.waveColor; ctx.lineWidth = 1;
+      const mid = h/2;
+      for(let px=0; px<widthPx; px++){
+        const b0 = s0+px*bucket, b1 = Math.min(s1, b0+bucket);
+        if(b1<=b0) continue;
+        let mn=1, mx=-1;
+        for(let i=b0;i<b1;i++){ if(mins[i]<mn) mn=mins[i]; if(maxs[i]>mx) mx=maxs[i]; }
+        ctx.beginPath(); ctx.moveTo(px+0.5, mid - mx*(h/2-6)); ctx.lineTo(px+0.5, mid - mn*(h/2-6)); ctx.stroke();
+      }
+    }
+  }
+
+  state.blocks.forEach((blk, idx)=>{
+    if(blk.time_ms==null) return;
+    const x = msToX(blk.time_ms);
+    ctx.strokeStyle = (idx===state.currentRow) ? '#ffd23f' : '#cc2d2d';   //Eredeti inaktiv marker color:  #bec3cd
+    ctx.lineWidth = (idx===state.currentRow) ? 3 : 2;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+  });
+
+  if(state.duration_ms>0){
+    const x = msToX(state.position_ms);
+    ctx.strokeStyle='#c239ff'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
+  }
+}
+
+function syncZoomControls(){
+  hscroll.max = Math.max(0, state.duration_ms-visibleDurationMs());
+  hscroll.value = state.viewStart_ms;
+  hscroll.style.display = state.zoom>1.001 ? 'block' : 'none';
+  zoomLbl.textContent = state.zoom.toFixed(1)+'×';
+}
+hscroll.addEventListener('input', ()=> setViewStart(parseInt(hscroll.value)));
+btnZoomIn.addEventListener('click', ()=> zoomAt(1.5));
+btnZoomOut.addEventListener('click', ()=> zoomAt(1/1.5));
+btnZoomReset.addEventListener('click', ()=>{ state.zoom=MIN_ZOOM; state.viewStart_ms=0; syncZoomControls(); drawWaveform(); });
+
+wfCanvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    const zoomFactor = e.deltaY < 0 ? 1.2 : 1 / 1.2;
+    zoomAt(zoomFactor);
+  } else {
+    const scrollAmountMs = (e.deltaY / 100) * (visibleDurationMs() * 0.1);
+    setViewStart(state.viewStart_ms + scrollAmountMs);
+  }
+}, { passive: false });
+
+function getCanvasX(e){
+  const rect = wfCanvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  return clientX - rect.left;
+}
+
+function handlePointerDown(e){
+  if(state.duration_ms<=0) return;
+  const x = getCanvasX(e);
+  const ms = xToMs(x);
+  const hit = markerAtX(x);
+  if(hit!==null){
+    state.userClickedRow = true;
+    if(state.blocks[hit].locked){ selectRow(hit,false); return; }
+    state.draggingMarker = hit;
+    state.wasPlayingBeforeDrag = !state.audioEl.paused;
+    applyDragPosition(hit, ms);
+    selectRow(hit,false);
+    return;
+  }
+  seekTo(ms);
+}
+
+function handlePointerMove(e){
+  if(state.draggingMarker>=0){
+    if(e.cancelable) e.preventDefault();
+    const x = getCanvasX(e);
+    const ms = Math.max(0, Math.min(state.duration_ms, xToMs(x)));
+    applyDragPosition(state.draggingMarker, ms);
+  }
+}
+
+function handlePointerUp(){
+  if(state.draggingMarker>=0){
+    state.draggingMarker = -1;
+    drawWaveform(); checkReadyToSave();
+    if(!state.wasPlayingBeforeDrag) state.audioEl.pause();
+  }
+}
+
+wfCanvas.addEventListener('mousedown', handlePointerDown);
+window.addEventListener('mousemove', handlePointerMove);
+window.addEventListener('mouseup', handlePointerUp);
+
+wfCanvas.addEventListener('touchstart', (e)=>{ handlePointerDown(e); }, {passive:false});
+window.addEventListener('touchmove', handlePointerMove, {passive:false});
+window.addEventListener('touchend', handlePointerUp);
+
+function applyDragPosition(idx, ms){
+  if(idx<0 || idx>=state.blocks.length || state.blocks[idx].locked) return;
+  state.blocks[idx].time_ms = ms;
+  renderList(state.currentRow); drawWaveform();
+  state.audioEl.currentTime = ms/1000;
+  if(state.audioEl.paused) state.audioEl.play();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.code === 'Space') {
+    e.preventDefault(); togglePlay();
+  } else if (e.code === 'Enter' || e.code === 'KeyM') {
+    e.preventDefault(); markCurrentLine();
+  } else if (e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (state.currentRow > 0) selectRow(state.currentRow - 1, true);
+  } else if (e.code === 'ArrowDown') {
+    e.preventDefault();
+    if (state.currentRow < state.blocks.length - 1) selectRow(state.currentRow + 1, true);
+  } else if (e.code === 'Delete' || e.code === 'Backspace') {
+    e.preventDefault(); deleteCurrentLine();
+  }
+});
+
+function renderList(selectRowIdx){
+  if(selectRowIdx===undefined) selectRowIdx = state.currentRow;
+  lineList.innerHTML='';
+  state.blocks.forEach((blk, idx)=>{
+    const li = document.createElement('li');
+    const ts = blk.time_ms!=null ? msToLrcTime(blk.time_ms) : '--:--.--';
+    li.innerHTML = `<span class="ts">[${ts}]</span><span class="txt ${!blk.text.trim()?'empty-txt':''}">${blk.text.trim()||t('emptyLine')}</span>${blk.locked?'🔒':''}`;
+    if(state.selected.has(idx)) li.classList.add('selected');
+    if(idx===state.activePlaybackRow) li.classList.add('playing');
+    li.addEventListener('click', ()=>{
+      state.userClickedRow = true;
+      state.selected = new Set([idx]);
+      selectRow(idx, false, true);
+    });
+    lineList.appendChild(li);
+  });
+  lineCount.textContent = state.blocks.length + ' ' + t('linesWord');
+  if(selectRowIdx>=0 && selectRowIdx<state.blocks.length && state.draggingMarker<0){
+    const items = lineList.querySelectorAll('li');
+    if(items[selectRowIdx]) items[selectRowIdx].scrollIntoView({block:'nearest'});
+  }
+  onRowSelected(selectRowIdx);
+}
+
+function selectRow(idx, dontClick, alreadyHandledSelection){
+  state.currentRow = idx;
+  if(!alreadyHandledSelection) state.selected = new Set(idx>=0?[idx]:[]);
+  if(dontClick) state.userClickedRow = false;
+  renderList(idx);
+}
+
+function onRowSelected(row){
+  drawWaveform();
+  if(state.userClickedRow && row>=0 && row<state.blocks.length){
+    const rowTime = state.blocks[row].time_ms;
+    if(rowTime!=null && state.mp3File){
+      seekTo(rowTime);
+      state.audioEl.play();
+    }
+    state.userClickedRow = false;
+  }
+  if(row>=0 && row<state.blocks.length){
+    lineTextInput.disabled = state.blocks[row].locked;
+    lineTextInput.value = state.blocks[row].text;
+  } else {
+    lineTextInput.disabled = true; lineTextInput.value='';
+  }
+}
+
+lineTextInput.addEventListener('input', ()=>{
+  const row = state.currentRow;
+  if(row<0 || row>=state.blocks.length || state.blocks[row].locked) return;
+  state.blocks[row].text = lineTextInput.value;
+  renderList(row); checkReadyToSave(); refreshPreviewSubtitle();
+});
+
+function insertEmptyLine(pos){
+  let insertAt = state.currentRow<0 ? 0 : (pos==='above' ? state.currentRow : state.currentRow+1);
+  state.blocks.splice(insertAt, 0, {text:'', time_ms:null, locked:false});
+  selectRow(insertAt, true); checkReadyToSave();
+  lineTextInput.disabled=false; lineTextInput.focus();
+}
+
+function deleteCurrentLine(){
+  if(state.currentRow<0) return;
+  if(state.blocks[state.currentRow].locked){ alert(t('alertLockedDelete')); return; }
+  state.blocks.splice(state.currentRow, 1);
+  const newRow = state.blocks.length ? Math.min(state.currentRow, state.blocks.length-1) : -1;
+  selectRow(newRow, true); checkReadyToSave();
+}
+
+function markCurrentLine(){
+  const row = state.currentRow;
+  if(row<0 || row>=state.blocks.length) return;
+  if(!state.blocks[row].locked) state.blocks[row].time_ms = state.position_ms;
+  const target = row + 1 < state.blocks.length ? row + 1 : row;
+  selectRow(target, true);
+  checkReadyToSave();
+}
+
+function updateActivePlaybackLine(){
+  let activeIdx=-1;
+  for(let i=0;i<state.blocks.length;i++){
+    if(state.blocks[i].time_ms!=null && state.blocks[i].time_ms<=state.position_ms) activeIdx=i;
+  }
+  if(activeIdx!==state.activePlaybackRow){
+    state.activePlaybackRow = activeIdx;
+    const items = lineList.querySelectorAll('li');
+    items.forEach(li=>li.classList.remove('playing'));
+    if(activeIdx>=0 && items[activeIdx]) items[activeIdx].classList.add('playing');
+    refreshPreviewSubtitle();
+  }
+}
+
+function refreshPreviewSubtitle(){
+  const idx = state.activePlaybackRow;
+  karCur.textContent = (idx>=0 && idx<state.blocks.length) ? state.blocks[idx].text : '';
+  karNext.textContent = (idx>=0 && idx+1<state.blocks.length) ? state.blocks[idx+1].text : '';
+  fitKaraokeText();
+}
+
+// Minimums are intentionally tiny: the karaoke box has a FIXED width/height, so instead of
+// ever truncating a long line, we let the font shrink as far as needed to always fit it whole.
+const KAR_CUR_MIN_PX = 6, KAR_CUR_MAX_PX = 64, KAR_NEXT_RATIO = 0.55, KAR_NEXT_MIN_PX = 5;
+const KAR_CUR_LINE_HEIGHT = 1.15, KAR_NEXT_LINE_HEIGHT = 1.2, KAR_GAP_PX = 8;
+
+function fitTextToWidth(el, maxWidth, minPx, maxPx){
+  if(!el.textContent || !el.textContent.trim()){ el.style.fontSize = minPx+'px'; return minPx; }
+  if(maxWidth <= 0) return minPx;
+  let lo = minPx, hi = Math.max(minPx, maxPx), best = minPx;
+  for(let i=0; i<18; i++){
+    const mid = (lo+hi)/2;
+    el.style.fontSize = mid+'px';
+    if(el.scrollWidth <= maxWidth){ best = mid; lo = mid; } else { hi = mid; }
+  }
+  el.style.fontSize = best+'px';
+  return best;
+}
+
+function fitKaraokeText(){
+  const container = karCur.closest('.karaoke-preview');
+  if(!container) return;
+  const cs = getComputedStyle(container);
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  const maxWidth = Math.max(10, container.clientWidth - padX);
+  const maxHeight = Math.max(10, container.clientHeight - padY);
+
+  // The box's HEIGHT is fixed too, so cap the current-line font size so that
+  // (current line + gap + next line) never exceeds the fixed height available.
+  const heightDenom = KAR_CUR_LINE_HEIGHT + KAR_NEXT_RATIO * KAR_NEXT_LINE_HEIGHT;
+  const curCapFromHeight = Math.max(KAR_CUR_MIN_PX, (maxHeight - KAR_GAP_PX) / heightDenom);
+  const curMaxPx = Math.min(KAR_CUR_MAX_PX, curCapFromHeight);
+
+  const curSize = fitTextToWidth(karCur, maxWidth, KAR_CUR_MIN_PX, curMaxPx);
+  const nextMax = Math.max(KAR_NEXT_MIN_PX, curSize * KAR_NEXT_RATIO);
+  fitTextToWidth(karNext, maxWidth, KAR_NEXT_MIN_PX, nextMax);
+}
+window.addEventListener('resize', fitKaraokeText);
+
+function checkReadyToSave(){
+  const hasBlocks = state.blocks.length > 0;
+  const ready = hasBlocks && state.blocks.some(b=>b.time_ms!=null);
+  btnExportLrc.disabled = !ready;
+  btnExportMp3.disabled = !(ready && state.mp3File && state.isMp3);
+  btnSaveProj.disabled = !hasBlocks;
+}
+
+/* FÁJL BEOLVASÁS EVENTEK */
+mp3Input.addEventListener('change', (e)=>{ if(e.target.files[0]) loadMp3File(e.target.files[0]); });
+
+txtInput.addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const entries = parseLrcText(reader.result);
+    state.blocks = entries.map(e=>({text:e.text, time_ms:e.time_ms, locked:false}));
+    state.txtInfo = { source:'file', name:f.name, count: state.blocks.length };
+    updateTxtLabel();
+    selectRow(state.blocks.length ? 0 : -1, true);
+    checkReadyToSave();
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+projInput.addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    try {
+      const data = JSON.parse(reader.result);
+      if(data.blocks && Array.isArray(data.blocks)) {
+        state.blocks = data.blocks;
+        state.txtInfo = { source:'proj', name:f.name, count: state.blocks.length };
+        updateTxtLabel();
+
+        if(data.mp3Base64) {
+          const mp3Buffer = base64ToArrayBuffer(data.mp3Base64);
+          await loadMp3Buffer(mp3Buffer, data.mp3Name || t('defaultProjectAudioName'));
+        }
+
+        selectRow(state.blocks.length ? 0 : -1, true);
+        checkReadyToSave();
+      } else {
+        alert(t('alertInvalidProject'));
+      }
+    } catch(err) {
+      alert(t('alertProjectReadError') + err.message);
+    }
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+btnImportEmbedded.addEventListener('click', ()=>{
+  if(!state.mp3Bytes){ alert(t('alertLoadMp3First')); return; }
+  const result = state.detectedEmbed || detectEmbeddedLyrics(state.mp3Bytes);
+  if(!result || !result.entries || result.entries.length === 0){
+    alert(t('alertNoEmbedFound'));
+    return;
+  }
+  state.blocks = result.entries.map(e=>({text:e.text, time_ms:e.time_ms, locked:false}));
+  state.embedLoaded = { typeKey: result.typeKey, count: state.blocks.length };
+  state.txtInfo = { source:'embedded', count: state.blocks.length };
+  updateTxtLabel();
+  updateEmbedInfo();
+  selectRow(state.blocks.length ? 0 : -1, true);
+  checkReadyToSave();
+});
+
+btnSaveProj.addEventListener('click', ()=>{
+  const projData = {
+    version: "1.0",
+    created: new Date().toISOString(),
+    mp3Name: state.mp3File ? state.mp3File.name : null,
+    mp3Base64: state.mp3Bytes ? arrayBufferToBase64(state.mp3Bytes.buffer) : null,
+    blocks: state.blocks
+  };
+  const jsonStr = JSON.stringify(projData);
+  const fileName = (state.mp3File ? stripAudioExt(state.mp3File.name) : t('defaultProjectFileBase')) + '.lyreki';
+  triggerDownload(new Blob([jsonStr], {type:'application/json;charset=utf-8'}), fileName);
+});
+
+btnExportLrc.addEventListener('click', ()=>{
+  const ordered = state.blocks.filter(b=>b.time_ms!=null).sort((a,b)=>a.time_ms-b.time_ms);
+  const lines = ordered.map(b=>`[${msToLrcTime(b.time_ms)}]${b.text}`).join('\n');
+  triggerDownload(new Blob([lines], {type:'text/plain;charset=utf-8'}), (state.mp3File ? stripAudioExt(state.mp3File.name) : 'output')+'.lrc');
+});
+
+btnExportMp3.addEventListener('click', ()=>{
+  if(!state.isMp3){ alert(t('alertExportMp3NotMp3')); return; }
+  const entries = blocksToLyricsEntries(state.blocks);
+  try{
+    const merged = mergeEntriesIntoMp3(state.mp3Bytes, entries);
+    triggerDownload(new Blob([merged], {type:'audio/mpeg'}), stripAudioExt(state.mp3File.name)+'_KORG.mp3');
+  }catch(e){ alert(t('alertMp3EmbedError')+e.message); }
+});
+
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  dlLink.href = url; dlLink.download = filename; dlLink.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+btnPlay.addEventListener('click', togglePlay);
+btnStop.addEventListener('click', stopPlayback);
+btnMark.addEventListener('click', markCurrentLine);
+btnInsertAbove.addEventListener('click', ()=>insertEmptyLine('above'));
+btnInsertBelow.addEventListener('click', ()=>insertEmptyLine('below'));
+btnDeleteLine.addEventListener('click', deleteCurrentLine);
+btnClearTime.addEventListener('click', ()=>{ if(state.currentRow>=0) state.blocks[state.currentRow].time_ms=null; renderList(); });
+btnLock.addEventListener('click', ()=>{ if(state.currentRow>=0) state.blocks[state.currentRow].locked=true; renderList(); });
+btnUnlock.addEventListener('click', ()=>{ if(state.currentRow>=0) state.blocks[state.currentRow].locked=false; renderList(); });
+btnClearAllText.addEventListener('click', ()=>{
+  state.blocks = [];
+  state.currentRow = -1;
+  state.activePlaybackRow = -1;
+  state.selected.clear();
+  state.txtInfo = null;
+  updateTxtLabel();
+  renderList();
+  checkReadyToSave();
+  refreshPreviewSubtitle();
+});
+
+resizeCanvas(); drawWaveform(); checkReadyToSave();
+applyLanguage();
+})();
+</script>
+</body>
+</html>
