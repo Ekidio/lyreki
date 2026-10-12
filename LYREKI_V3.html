@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>LYREKI 3.0</title>
+<title>LYREKI 3.1</title>
 <style>
   * { box-sizing: border-box; touch-action: manipulation; }
   body {
@@ -100,6 +100,14 @@
 
   .controls-bar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; }
   .time-display { font-family: monospace; font-size: 0.95rem; color: #ffd23f; font-weight: bold; }
+  .left-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bpm-box {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(60,220,180,0.12); border: 1px solid rgba(60,220,180,0.5);
+    border-radius: 6px; padding: 2px 4px 2px 8px;
+  }
+  .bpm-value { font-family: monospace; font-size: 0.95rem; font-weight: bold; color: #5ef0c8; white-space: nowrap; }
+  .bpm-box button { flex: none; padding: 3px 7px; font-size: 0.7rem; }
 
   #hscroll { width: 100%; margin-top: 6px; accent-color: #508cff; }
   .zoom-btns { display: flex; gap: 4px; }
@@ -178,7 +186,7 @@
   <!-- 1) TOP BAR: title, language switch, device badge, file operations -->
   <div class="top-bar panel">
     <div class="top-bar-row">
-      <h1>LYREKI 3.0 <span class="app-subtitle">Visual Lyrics Editor</span></h1>
+      <h1>LYREKI 3.1 <span class="app-subtitle">Visual Lyrics Editor</span></h1>
       <div class="top-bar-right">
         <div class="lang-switch">
           <button id="btnLangHu" class="lang-btn active" type="button">HU</button>
@@ -211,7 +219,14 @@
     <input type="range" id="hscroll" min="0" max="100" value="0" style="display:none;">
 
     <div class="controls-bar">
-      <span class="time-display"><span id="curTime">00:00.00</span> / <span id="totTime">00:00.00</span></span>
+      <div class="left-info">
+        <span class="time-display"><span id="curTime">00:00.00</span> / <span id="totTime">00:00.00</span></span>
+        <span class="bpm-box" id="bpmBox" title="Becsült tempó">
+          <span id="bpmValue" class="bpm-value">-- BPM</span>
+          <button id="btnBpmHalf" type="button" title="Tempó felezése" disabled>½</button>
+          <button id="btnBpmDouble" type="button" title="Tempó duplázása" disabled>×2</button>
+        </span>
+      </div>
       <div class="zoom-btns">
         <button id="btnZoomOut" title="Kicsinyítés">➖</button>
         <span id="zoomLbl" style="font-size:0.8rem; align-self:center;">1.0×</span>
@@ -310,6 +325,8 @@ const I18N = {
     alertExportMp3NotMp3: "Az MP3-ba történő beágyazás csak eredeti MP3 hangfájlnál működik.",
     defaultProjectAudioName: "projekt_audio.mp3",
     defaultProjectFileBase: "projekt",
+    bpmAnalyzing: "BPM elemzés…", bpmUnknown: "-- BPM",
+    bpmTitle: "Becsült tempó (automatikus elemzés)", bpmHalfTitle: "Tempó felezése", bpmDoubleTitle: "Tempó duplázása",
   },
   en: {
     desktopView: "Desktop View", mobileView: "Mobile View",
@@ -348,6 +365,8 @@ const I18N = {
     alertExportMp3NotMp3: "Embedding into MP3 only works with an original MP3 audio file.",
     defaultProjectAudioName: "project_audio.mp3",
     defaultProjectFileBase: "project",
+    bpmAnalyzing: "Analyzing BPM…", bpmUnknown: "-- BPM",
+    bpmTitle: "Estimated tempo (automatic analysis)", bpmHalfTitle: "Halve tempo", bpmDoubleTitle: "Double tempo",
   }
 };
 const TYPE_KEY_TO_I18N = {
@@ -379,6 +398,8 @@ const state = {
   embedLoaded: null,     // {typeKey, count} - after the user actually imports it
   txtInfo: null,         // {source:'file'|'proj'|'embedded', name, count}
   lang: 'hu',
+  bpm: null,             // detected tempo (beats per minute), null = unknown
+  bpmAnalyzing: false,
 };
 const MIN_ZOOM = 1.0, MAX_ZOOM = 200.0, MARKER_HIT_PX = 20;
 
@@ -965,6 +986,7 @@ const dlLink=$('dlLink');
 const lblOpenMp3=$('lblOpenMp3'), lblOpenSubtitle=$('lblOpenSubtitle'), lblOpenProject=$('lblOpenProject');
 const hotkeyHints=$('hotkeyHints');
 const btnLangHu=$('btnLangHu'), btnLangEn=$('btnLangEn');
+const bpmBox=$('bpmBox'), bpmValue=$('bpmValue'), btnBpmHalf=$('btnBpmHalf'), btnBpmDouble=$('btnBpmDouble');
 
 /* ============================= LABEL / TEXT REFRESH ============================= */
 function updateMp3Label(){ mp3Label.textContent = state.mp3File ? state.mp3File.name : t('noMp3'); }
@@ -1019,8 +1041,12 @@ function applyLanguage(){
   btnExportMp3.textContent = t('exportMp3');
   btnClearAllText.textContent = t('clearAllText');
   btnSaveProj.textContent = t('saveProject');
+  bpmBox.title = t('bpmTitle');
+  btnBpmHalf.title = t('bpmHalfTitle');
+  btnBpmDouble.title = t('bpmDoubleTitle');
 
   updateDeviceBadge();
+  updateBpmDisplay();
   updateMp3Label();
   updateTxtLabel();
   updateEmbedInfo();
@@ -1056,6 +1082,169 @@ function isMp3Bytes(bytes){
   if (bytes[0]===0xFF && (bytes[1]&0xE0)===0xE0) return true; // MPEG frame sync
   return false;
 }
+/* ============================= BPM DETECTION =============================
+   Fully client-side tempo estimate:
+   1) mono mixdown -> STFT -> log-magnitude spectral flux = onset strength envelope
+   2) autocorrelation of the envelope
+   3) coarse search: integer lags in 60–200 BPM, scored by a comb over beat multiples,
+      weighted by a log-normal prior around 120 BPM (reduces half/double-tempo errors)
+   4) fine search: fractional lag refinement over 16 beat multiples for ~0.1 BPM precision */
+const BPM_MIN = 60, BPM_MAX = 200, BPM_MAX_ANALYSIS_SEC = 120;
+
+function fftInPlace(re, im){
+  const n = re.length;
+  for(let i=1, j=0; i<n; i++){
+    let bit = n>>1;
+    for(; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if(i < j){ let tmp=re[i]; re[i]=re[j]; re[j]=tmp; tmp=im[i]; im[i]=im[j]; im[j]=tmp; }
+  }
+  for(let len=2; len<=n; len<<=1){
+    const ang = -2*Math.PI/len, wr = Math.cos(ang), wi = Math.sin(ang), half = len>>1;
+    for(let i=0; i<n; i+=len){
+      let cr = 1, ci = 0;
+      for(let k=0; k<half; k++){
+        const a = i+k, b = a+half;
+        const xr = re[b]*cr - im[b]*ci, xi = re[b]*ci + im[b]*cr;
+        re[b] = re[a]-xr; im[b] = im[a]-xi; re[a] += xr; im[a] += xi;
+        const ncr = cr*wr - ci*wi; ci = cr*wi + ci*wr; cr = ncr;
+      }
+    }
+  }
+}
+
+function detectBpm(channels, sampleRate){
+  const FRAME = 1024, HOP = 512;
+  const total = channels[0].length;
+  // Analyse at most BPM_MAX_ANALYSIS_SEC from the middle of the track (intros/outros are often beatless)
+  const maxLen = Math.floor(BPM_MAX_ANALYSIS_SEC * sampleRate);
+  const start = total > maxLen ? Math.floor((total - maxLen) / 2) : 0;
+  const len = Math.min(total, maxLen);
+  const mono = new Float32Array(len);
+  for(const ch of channels){ for(let i=0; i<len; i++) mono[i] += ch[start+i] / channels.length; }
+
+  const nFrames = Math.floor((len - FRAME) / HOP);
+  const fps = sampleRate / HOP;
+  if(nFrames < fps * 5) return null; // need at least ~5 seconds of audio
+
+  // 1) spectral flux onset envelope
+  const win = new Float32Array(FRAME);
+  for(let i=0; i<FRAME; i++) win[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/FRAME);
+  const bins = FRAME/2, re = new Float32Array(FRAME), im = new Float32Array(FRAME);
+  let prev = new Float32Array(bins), cur = new Float32Array(bins);
+  const env = new Float32Array(nFrames);
+  for(let f=0; f<nFrames; f++){
+    const off = f*HOP;
+    for(let i=0; i<FRAME; i++){ re[i] = mono[off+i]*win[i]; im[i] = 0; }
+    fftInPlace(re, im);
+    let sum = 0;
+    for(let k=1; k<bins; k++){
+      cur[k] = Math.log1p(100 * Math.sqrt(re[k]*re[k] + im[k]*im[k]));
+      const d = cur[k] - prev[k];
+      if(d > 0) sum += d;
+    }
+    env[f] = f === 0 ? 0 : sum;
+    const tmp = prev; prev = cur; cur = tmp;
+  }
+
+  // remove slow loudness trend (moving average, ~1 s) and half-wave rectify
+  const avgHalf = Math.round(fps / 2);
+  const prefix = new Float64Array(nFrames+1);
+  for(let i=0; i<nFrames; i++) prefix[i+1] = prefix[i] + env[i];
+  const rect = new Float32Array(nFrames);
+  for(let i=0; i<nFrames; i++){
+    const a = Math.max(0, i-avgHalf), b = Math.min(nFrames, i+avgHalf+1);
+    const v = env[i] - (prefix[b]-prefix[a])/(b-a);
+    rect[i] = v > 0 ? v : 0;
+  }
+  // light Gaussian smoothing (~20 ms) widens the autocorrelation peaks so that
+  // tempos falling between whole frame lags are still found reliably
+  const SIG = 1.5, KR = 4, kern = [];
+  let ksum = 0;
+  for(let k=-KR; k<=KR; k++){ const g = Math.exp(-0.5*k*k/(SIG*SIG)); kern.push(g); ksum += g; }
+  const onset = new Float32Array(nFrames);
+  for(let i=0; i<nFrames; i++){
+    let v = 0;
+    for(let k=-KR; k<=KR; k++){ const j = i+k; if(j>=0 && j<nFrames) v += rect[j]*kern[k+KR]; }
+    onset[i] = v / ksum;
+  }
+
+  // 2) autocorrelation up to 16 beats of the slowest tempo
+  const lagMin = Math.floor(60*fps/BPM_MAX), lagMax = Math.ceil(60*fps/BPM_MIN);
+  const COMB = 16;
+  const acLen = Math.min(nFrames-1, lagMax*COMB + 2);
+  const ac = new Float32Array(acLen+1);
+  for(let lag=1; lag<=acLen; lag++){
+    let s = 0;
+    for(let i=0, n=nFrames-lag; i<n; i++) s += onset[i]*onset[i+lag];
+    ac[lag] = s / (nFrames-lag);
+  }
+  const acAt = (x)=>{ // cubic (Catmull-Rom) interpolation for fractional lags
+    const i = Math.floor(x); if(i < 2 || i+2 > acLen) return 0;
+    const t = x - i, p0 = ac[i-1], p1 = ac[i], p2 = ac[i+1], p3 = ac[i+2];
+    return p1 + 0.5*t*(p2 - p0 + t*(2*p0 - 5*p1 + 4*p2 - p3 + t*(3*(p1 - p2) + p3 - p0)));
+  };
+  const combScore = (lag, beats)=>{
+    let s = 0, w = 0;
+    for(let k=1; k<=beats; k++){ if(k*lag+2 > acLen) break; s += acAt(k*lag); w++; }
+    return w ? s/w : 0;
+  };
+  // a real beat is usually subdivided (eighth notes), so its half-lag points are also periodic
+  const halfScore = (lag, beats)=>{
+    let s = 0, w = 0;
+    for(let k=1; k<=beats; k++){ const x = (k-0.5)*lag; if(x+2 > acLen) break; s += acAt(x); w++; }
+    return w ? s/w : 0;
+  };
+  const prior = (bpm)=>{ const o = Math.log2(bpm/120); return Math.exp(-0.5*o*o/(0.9*0.9)); };
+
+  // 3) coarse search
+  let bestLag = -1, bestScore = -Infinity;
+  for(let lag=Math.max(2,lagMin); lag<=lagMax; lag+=0.1){
+    const sc = (combScore(lag, 4) + 0.5*halfScore(lag, 4)) * prior(60*fps/lag);
+    if(sc > bestScore){ bestScore = sc; bestLag = lag; }
+  }
+  if(bestLag < 0 || !(bestScore > 0)) return null;
+
+  // 4) fine search around the coarse lag
+  let fineLag = bestLag, fineScore = -Infinity;
+  for(let x=bestLag-0.3; x<=bestLag+0.3; x+=0.005){
+    const sc = combScore(x, COMB);
+    if(sc > fineScore){ fineScore = sc; fineLag = x; }
+  }
+  const bpm = 60*fps/fineLag;
+  return Math.round(bpm*10)/10;
+}
+
+function formatBpm(bpm){
+  const r = Math.round(bpm);
+  return (Math.abs(bpm - r) < 0.15 ? String(r) : bpm.toFixed(1)) + ' BPM';
+}
+function updateBpmDisplay(){
+  if(state.bpmAnalyzing) bpmValue.textContent = t('bpmAnalyzing');
+  else bpmValue.textContent = state.bpm ? formatBpm(state.bpm) : t('bpmUnknown');
+  const has = !!state.bpm && !state.bpmAnalyzing;
+  btnBpmHalf.disabled = !has || state.bpm/2 < 30;
+  btnBpmDouble.disabled = !has || state.bpm*2 > 400;
+}
+btnBpmHalf.addEventListener('click', ()=>{ if(state.bpm){ state.bpm = Math.round(state.bpm*5)/10; updateBpmDisplay(); } });
+btnBpmDouble.addEventListener('click', ()=>{ if(state.bpm){ state.bpm = Math.round(state.bpm*20)/10; updateBpmDisplay(); } });
+
+let bpmJobId = 0;
+async function analyzeBpm(decoded){
+  const job = ++bpmJobId;
+  state.bpm = null; state.bpmAnalyzing = true; updateBpmDisplay();
+  await new Promise(r=>setTimeout(r, 30)); // let the waveform paint before the heavy work
+  if(job !== bpmJobId) return;
+  let bpm = null;
+  try{
+    const channels = [];
+    for(let c=0; c<Math.min(2, decoded.numberOfChannels); c++) channels.push(decoded.getChannelData(c));
+    bpm = detectBpm(channels, decoded.sampleRate);
+  }catch(e){ bpm = null; }
+  if(job !== bpmJobId) return; // a newer file was loaded meanwhile
+  state.bpm = bpm; state.bpmAnalyzing = false; updateBpmDisplay();
+}
+
 async function loadMp3Buffer(buf, fileName) {
   state.mp3File = { name: fileName };
   state.mp3Bytes = new Uint8Array(buf);
@@ -1073,10 +1262,11 @@ async function loadMp3Buffer(buf, fileName) {
   try { state.detectedEmbed = detectEmbeddedLyrics(state.mp3Bytes); } catch(e){ state.detectedEmbed = null; }
   updateEmbedInfo();
 
+  let decoded = null;
   try{
     const AC = window.AudioContext || window.webkitAudioContext;
     const actx = new AC();
-    const decoded = await actx.decodeAudioData(buf.slice(0));
+    decoded = await actx.decodeAudioData(buf.slice(0));
     const mono = decoded.getChannelData(0);
     const targetRate = 4000;
     const factor = Math.max(1, Math.round(decoded.sampleRate/targetRate));
@@ -1095,6 +1285,8 @@ async function loadMp3Buffer(buf, fileName) {
   }catch(e){ state.samples = null; }
   state.zoom = MIN_ZOOM; state.viewStart_ms = 0;
   resizeCanvas(); drawWaveform(); syncZoomControls(); checkReadyToSave();
+  if(decoded) analyzeBpm(decoded);
+  else { bpmJobId++; state.bpm = null; state.bpmAnalyzing = false; updateBpmDisplay(); }
 }
 
 async function loadMp3File(file){
