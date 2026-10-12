@@ -1,3 +1,6 @@
+2026.10.12. - V3.1
+BPM analyzer: the tempo of the loaded song is detected automatically in the browser and shown next to the time display (with ½ / ×2 correction buttons).
+
 2026.09.17. - V3.0
 Delete all lyrics function is released. 
 
